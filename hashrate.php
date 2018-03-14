@@ -14,7 +14,7 @@ $cachetime = 60 * 60;
 
          include($cachefile);
 
-         echo "<!-- Cached " . date('jS F Y H:i', filemtime($cachefile)). "-->n";
+         echo "<!-- Cached " . date('jS F Y H:i', filemtime($cachefile)). "-->";
 
          exit;
       }
@@ -56,7 +56,7 @@ function process_nethash($interval)
 function bin_to_int_diff($d) {
 	$a = (int) ($d / 256);
 	$b = $d % 256;
-	return 2 ** $a * 256 / (256 - $b);
+	return 2 ** $a * (256 + $b) / 256;
 }
 
 $url_local = "http://localhost:8081";
