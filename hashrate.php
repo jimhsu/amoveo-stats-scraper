@@ -66,25 +66,36 @@ $interval = 20;
 $blockNum = [];
 $diff = [];
 $nethash = [];
+$period = [];
 
 $diffI = 0;
 $diffT = 0;
 
 $height = process_int(curl_request($url_remote,'["height"]'));
+$nethash = array_merge([1], process_nethash($interval));
 for($i=0;$i<$height;$i+=$interval) {
 	if($i % 2000 == 0)
 	{
 		$diffI = process_int(curl_request($url_remote,'["block", ' . ($i+1) . ']'),6);
 		$diffT = (float)bin_to_int_diff($diffI) / (10 ** 12); // conversion from bin diff to Terahashes
 	}
+	if(isset($nethash[$i/$interval])) {
+		if($nethash[$i/$interval] == 0) { // hacky
+			$periodT = $diffT * 1000 / 1;
+		}
+		else {
+			$periodT = $diffT * 1000 / $nethash[$i/$interval];
+		}
+		array_push($period,$periodT);
+	}	
 	array_push($blockNum,$i);
 	array_push($diff,$diffT);
 }
-$nethash = array_merge([1], process_nethash($interval));
 
-print("<Table><tr><th>Block</th><th>Difficulty (TH/b)</th><th>Nethash (GH/s)</th></tr>");
+
+print("<Table><tr><th>Block</th><th>Difficulty (TH/b)</th><th>Nethash (GH/s)</th><th>Blocktime</th></tr>");
 for($i=0;$i<count($blockNum);$i++) {
-	print("<tr><td>" . $blockNum[$i] . "</td><td>" . round((float)$diff[$i],3) . "</td><td>" . $nethash[$i] . "</td></tr>");
+	print("<tr><td>" . $blockNum[$i] . "</td><td>" . round((float)$diff[$i],3) . "</td><td>" . $nethash[$i] . "</td><td>" . round((float)$period[$i],0) . "</td></tr>");
 }
 print("</table>");
 
