@@ -177,7 +177,7 @@ for($i=$starting;$i<$height;$i+=$interval) {
 	array_push($diffPredict,$estDiff);
 	
 	$sql = "UPDATE hashrate SET hashpredict=" . $estDiff . " WHERE block=" . $i;
-	print($sql);
+
 	if ($conn->query($sql) === FALSE) {
 		echo "Error: " . $sql . "<br>" . $conn->error;
 		break;

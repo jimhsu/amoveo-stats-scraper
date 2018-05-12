@@ -39,7 +39,7 @@ class block {
 
 $servername = "localhost";
 $username = "amoveostats";
-$password = "3v5tZRqJrgViZIMY";
+$password = "";
 $dbname = "amoveostats";
 
 
