@@ -2,7 +2,7 @@
 
 <?php
 //
-// A very simple PHP example that sends a HTTP POST to a remote site
+// Manual recalc predicted diff
 //
 
 $servername = "localhost";
@@ -107,58 +107,16 @@ $diffT = 0;
 $height = process_int(curl_request($url_remote,'["height"]'));
 //$height = 2040;
 
-if ($height - $starting < $interval) {
-	$starting -= $interval; // make sure there is something to process if current block data incomplete
-}	
-
-$nethash = array_merge(process_nethash($interval,$starting)); 
-//print_r(array_values($nethash));
-// starting from block 40
-// assume first 40 blocks have nethash of 1 (which is true)
-
 // initial diff for block at $starting or block 1
 $diffI = process_int(curl_request($url_remote,'["block", ' . max($starting,1) . ']'),6);
 $diffT = (float)bin_to_int_diff($diffI) / (10 ** 12); // conversion from bin diff to Terahashes
 
-for($i=$starting;$i<$height;$i+=$interval) {
+for($i=0;$i<$height;$i+=$interval) {
 	if($i % 2000 == 0)
 	{
 		$diffI = process_int(curl_request($url_remote,'["block", ' . ($i+1) . ']'),6);
 		$diffT = (float)bin_to_int_diff($diffI) / (10 ** 12); // conversion from bin diff to Terahashes
 	}
-	if ($i < 40) // manually set first 2 block intervals
-	{
-		$periodT = $diffT * 1000 / 1; // nethash of 1 gh/s
-		array_push($period,$periodT);
-	}
-	else {
-		if(isset($nethash[($i-$starting)/$interval])) {
-			if($nethash[($i-$starting)/$interval] == 0) { // hacky
-				$periodT = $diffT * 1000 / 1;
-			}
-			else {
-				$periodT = $diffT * 1000 / $nethash[($i-$starting)/$interval];
-			}
-			array_push($period,$periodT);
-		}	
-	}
-	array_push($blockNum,$i);
-	array_push($diff,$diffT);
-	
-	if (is_null($nethash[($i-$starting)/$interval])) {
-		$nh = 1;
-	}
-	else {
-		$nh = max(1,$nethash[($i-$starting)/$interval]);
-	}
-	
-	$sql = "REPLACE INTO hashrate (block, difficulty, nethash, blocktime)
-	VALUES (". $i .", ". $diffT .", ". $nh .", ". $periodT .")";
-	if ($conn->query($sql) === FALSE) {
-		echo "Error: " . $sql . "<br>" . $conn->error;
-		break;
-	}
-	
 	// Predicted difficulty
 	$estDiff = $diffT; // base case - estimated diff = current diff
 	$firstBlock = intdiv($i,2000)*2000; // Find first block of current diff
@@ -213,15 +171,6 @@ for($i=$starting;$i<$height;$i+=$interval) {
 	}
 	
 }
-
-
-print("<Table><tr><th>Block</th><th>Difficulty (TH/b)</th><th>Nethash (GH/s)</th><th>Blocktime</th><th>Predicted Diff</th></tr>");
-for($i=0;$i<count($blockNum);$i++) {
-	print("<tr><td>" . $blockNum[$i] . "</td><td>" . round((float)$diff[$i],3) . "</td><td>" . $nethash[$i] . "</td><td>" . round((float)$period[$i],0) . "</td><td>" . round((float)$diffPredict[$i],3) ."</td></tr>");
-}
-print("</table>");
-
-print("Pushed to SQL");
 
 ?>
 </body>
