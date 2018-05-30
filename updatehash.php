@@ -1,15 +1,7 @@
 <html><body>
 
 <?php
-//
-// A very simple PHP example that sends a HTTP POST to a remote site
-//
-
-$servername = "localhost";
-$username = "amoveostats";
-$password = "";
-$dbname = "amoveostats";
-
+require('config.inc.php');
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

@@ -28,6 +28,7 @@ $cachetime = 60;
 // A very simple PHP example that sends a HTTP POST to a remote site
 //
 header('Content-Type: application/json');
+require('config.inc.php');
 
 class block {
 	public $blocknum = 0;
@@ -35,11 +36,6 @@ class block {
 	public $nethash = 0;
 	public $blocktime = 0;
 }
-
-$servername = "localhost";
-$username = "amoveostats";
-$password = "";
-$dbname = "amoveostats";
 
 
 // Create connection

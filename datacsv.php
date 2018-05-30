@@ -30,6 +30,7 @@ $cachetime = 60;
 ob_clean();
 
 print("block,difficulty,nethash,blocktime\n");
+require('config.inc.php');
 
 class block {
 	public $blocknum = 0;
@@ -37,12 +38,6 @@ class block {
 	public $nethash = 0;
 	public $blocktime = 0;
 }
-
-$servername = "localhost";
-$username = "amoveostats";
-$password = "";
-$dbname = "amoveostats";
-
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

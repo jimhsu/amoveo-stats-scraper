@@ -5,11 +5,7 @@
 // Manual recalc predicted diff
 //
 
-$servername = "localhost";
-$username = "amoveostats";
-$password = "";
-$dbname = "amoveostats";
-
+require('config.inc.php');
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
