@@ -108,54 +108,79 @@ $diffI = process_int(curl_request($url_remote,'["block", ' . max($starting,1) . 
 $diffT = (float)bin_to_int_diff($diffI) / (10 ** 12); // conversion from bin diff to Terahashes
 
 for($i=0;$i<$height;$i+=$interval) {
-	if($i % 2000 == 0)
+	// commit c1b57c11853c42c337cc7c1cc5681646d9d7e5da: now we retarget twice as often. This is a hard update for height 27000 
+	if($i % 1000 == 0)
 	{
 		$diffI = process_int(curl_request($url_remote,'["block", ' . ($i+1) . ']'),6);
 		$diffT = (float)bin_to_int_diff($diffI) / (10 ** 12); // conversion from bin diff to Terahashes
 	}
 	// Predicted difficulty
 	$estDiff = $diffT; // base case - estimated diff = current diff
-	$firstBlock = intdiv($i,2000)*2000; // Find first block of current diff
+	if ($i <= 26900) {
+		$firstBlock = intdiv($i,2000)*2000; // Find first block of current diff
+	}
+	elseif ($i > 26900) {
+		$firstBlock = intdiv($i,1000)*1000; // Find first block of current diff (retarget twice as often)
+	}	
 	$measure1 = $firstBlock+500;
 	$measure2 = $firstBlock+1500;
-	if ($i < $measure1) {
-	// For blocks 1-480 in each interval, do estimate as originally
-		// Get SQL
-		$sql = "SELECT blocktime FROM `hashrate` WHERE block <= " . $i . " AND block >= " . $firstBlock;
-		$blocktimeArray = [];
-		$result = $conn->query($sql);
-		if ($result->num_rows > 0) {
-			while($row = $result->fetch_assoc()) {
-				array_push($blocktimeArray,$row["blocktime"]);
+	// commit c1b57c11853c42c337cc7c1cc5681646d9d7e5da: now we retarget twice as often. This is a hard update for height 27000 
+	if ($i <= 26900) 
+		{
+		if ($i < $measure1) {
+		// For blocks 1-480 in each interval, do estimate as originally
+			// Get SQL
+			$sql = "SELECT blocktime FROM `hashrate` WHERE block <= " . $i . " AND block >= " . $firstBlock;
+			$blocktimeArray = [];
+			$result = $conn->query($sql);
+			if ($result->num_rows > 0) {
+				while($row = $result->fetch_assoc()) {
+					array_push($blocktimeArray,$row["blocktime"]);
+				}
+			}
+			$medBlockTime = calculateMedian($blocktimeArray);
+			$estDiff = 600/$medBlockTime * $diffT;
+		}
+		elseif ($i >= $measure1 && $i <= $measure2) {
+		// For blocks 500-1500, reset from block 500 and do median
+			// Get SQL
+			$sql = "SELECT blocktime FROM `hashrate` WHERE block <= " . $i . " AND block >= " . $measure1;
+			$blocktimeArray = [];
+			$result = $conn->query($sql);
+			if ($result->num_rows > 0) {
+				while($row = $result->fetch_assoc()) {
+					array_push($blocktimeArray,$row["blocktime"]);
+				}
+			}
+			$medBlockTime = calculateMedian($blocktimeArray);
+			$estDiff = 600/$medBlockTime * $diffT;
+		}
+		else {
+			// For blocks 1520-2000, read predicted hash value from block 1500
+			$sql = "SELECT hashpredict FROM `hashrate` WHERE block = " . $measure2;
+			$result = $conn->query($sql);
+			if ($result->num_rows > 0) {
+				while($row = $result->fetch_assoc()) {
+					$estDiff = $row["hashpredict"];
+				}
 			}
 		}
-		$medBlockTime = calculateMedian($blocktimeArray);
-		$estDiff = 600/$medBlockTime * $diffT;
 	}
-	elseif ($i >= $measure1 && $i <= $measure2) {
-	// For blocks 500-1500, reset from block 500 and do median
-		// Get SQL
-		$sql = "SELECT blocktime FROM `hashrate` WHERE block <= " . $i . " AND block >= " . $measure1;
-		$blocktimeArray = [];
-		$result = $conn->query($sql);
-		if ($result->num_rows > 0) {
-			while($row = $result->fetch_assoc()) {
-				array_push($blocktimeArray,$row["blocktime"]);
+	elseif ($i > 26900) { // after the fork, we simple take median of 1000 block period
+			// Get SQL
+			$sql = "SELECT blocktime FROM `hashrate` WHERE block <= " . $i . " AND block >= " . $firstBlock;
+			$blocktimeArray = [];
+			$result = $conn->query($sql);
+			if ($result->num_rows > 0) {
+				while($row = $result->fetch_assoc()) {
+					array_push($blocktimeArray,$row["blocktime"]);
+				}
 			}
-		}
-		$medBlockTime = calculateMedian($blocktimeArray);
-		$estDiff = 600/$medBlockTime * $diffT;
+			$medBlockTime = calculateMedian($blocktimeArray);
+			$estDiff = 600/$medBlockTime * $diffT;
 	}
-	else {
-		// For blocks 1520-2000, read predicted hash value from block 1500
-		$sql = "SELECT hashpredict FROM `hashrate` WHERE block = " . $measure2;
-		$result = $conn->query($sql);
-		if ($result->num_rows > 0) {
-			while($row = $result->fetch_assoc()) {
-				$estDiff = $row["hashpredict"];
-			}
-		}
-	}
+	// commit 4462135a40de9cdc2db4d35974666f8597056a20: limit how quickly difficulty can decrease by 
+	$estDiff = max($estDiff,6*$diffT/7);
 	array_push($diffPredict,$estDiff);
 	print($i . "," . $estDiff . "<br>\n");
 	
